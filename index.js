@@ -1,77 +1,12 @@
-require('dotenv').config()
-const express = require('express')
-const cors = require('cors')
-const Note = require('./models/note')
+const app = require('./app')
+const http = require('http')
+const config = require('./utils/config')
+const logger = require('./utils/logger')
 
-const app = express()
-app.use(cors())
+const server = http.createServer(app)
 
-app.use(express.static('build'))
-app.use(express.json())
-
-app.get('/', (req, res) => {
-  res.send('<h1>Hola</h1>')
-})
-
-app.get('/api/notes', (req, res) => {
-  Note.find({}).then((notes) => {
-    res.json(notes)
-  })
-})
-
-app.get('/api/notes/:id', (req, res, next) => {
-  Note.findById(req.params.id).then(note => {
-    if (note) {
-      res.json(note)
-    } else {
-      res.status(404).end()
-    }
-  })
-    .catch(error => next(error))
-
-  /* const note = notes.find((note) => note.id === id);
-  note ? res.json(note) : res.status(404).end(); */
-})
-
-app.delete('/api/notes/:id', (req, res, next) => {
-  Note.findByIdAndDelete(req.params.id)
-    .then(result => {
-      res.status(204).end()
-    })
-    .catch(error => next(error))
-})
-
-// Crear Notas
-app.post('/api/notes', (req, res, next) => {
-  const body = req.body
-
-  const note = new Note({
-    content: body.content,
-    important: body.important || false,
-    date: new Date()
-  })
-
-  note.save()
-    .then(savedNote => savedNote.toJSON())
-    .then(savedAndFormattedNode => {
-      res.json(savedAndFormattedNode)
-    })
-    .catch(error => next(error))
-})
-
-// Actualizar important
-app.put('/api/notes/:id', (req, res, next) => {
-  const { body } = req
-  const note = {
-    content: body.content,
-    important: body.important
-  }
-
-  Note.findByIdAndUpdate(req.params.id, note, { new: true }) // new: true es para recibir el objeto modificado
-    .then(updatedNote => {
-      res.json(updatedNote)
-    })
-    .catch(error => next(error))
+server.listen(config.PORT, () => {
+  logger.info(`Server running on port ${config.PORT}`)
 })
 
 const unknownEndPoint = (req, res) => {
@@ -91,8 +26,3 @@ const errorHandler = (error, req, res, next) => {
 app.use(unknownEndPoint)
 // uso error handler
 app.use(errorHandler)
-
-const PORT = process.env.PORT
-app.listen(PORT, () => {
-  console.log(`Server running on port http://localhost:${PORT}`)
-})
